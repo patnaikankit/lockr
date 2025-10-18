@@ -1,2 +1,3 @@
 @echo off
-uv run python -m lockr.main
+set PYTHONPATH=%CD%\src
+uv run python -m lockr.main %*
