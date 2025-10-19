@@ -11,7 +11,7 @@ def check_complexity(password: str, min_length: int = 12):
     check = []
 
     if len(password) < min_length:
-        check.append(f"at least {min_length} characters")
+        check.append(f"at least {min_length} characters needed")
         isValid = False
 
     if not any(c.isupper() for c in password):

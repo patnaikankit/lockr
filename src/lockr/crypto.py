@@ -9,6 +9,7 @@ class CryptoManager:
         self.storage = storage
         self.fernet = None
 
+    # Master password hashing
     def hash_master_password(self, password: str) -> bytes:
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         self.storage.set_master_hash(hashed)
@@ -23,6 +24,7 @@ class CryptoManager:
         except Exception:
             return False
         
+    #  Key derivation and Fernet
     def dervive_key(self, password: str) -> bytes:
         salt = self.storage.get_encryption_salt()
         if not salt:
@@ -53,5 +55,5 @@ class CryptoManager:
         if not self.fernet:
             raise RuntimeError("Fernet instance not initialized.")
         
-        token = self.fernet.decrypt(token_b64.encode('utf-8'))
+        token = base64.b64decode(token_b64.encode('utf-8'))
         return self.fernet.decrypt(token).decode('utf-8')
