@@ -154,4 +154,49 @@ class Server:
         lastest_id = self.database.insert_passsword(website, username, enc)
         self.most_recent_id = lastest_id
         self.console.print("Password added successfully!\n", style="green")
+
+    def handle_update(self):
+        entries = self.database.fetch_passwords_meta()
+        if not entries:
+            self.console.print("No passwords found.", style="yellow")
+            return 
         
+        table = Table(title="\nStored password entries")
+        table.add_column("ID", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Website", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Username", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Creation Date", justify="center", style="cyan", no_wrap=True)
+        for entry in entries:
+            table.add_row(f"{entry[0]}", f"{entry[1]}", f"{entry[2]}", f"{entry[3]}")
+        self.console.print(table)
+
+        for entry in entries:
+            table.add_row(f"{entry[0]}", f"{entry[1]}", f"{entry[2]}", f"{entry[3]}")
+        self.console.print(table)
+        print("")
+
+        id = self.console.input("[yellow]> [/yellow]Enter the ID of the password you want to update: ").strip()
+        if not self._validate_input(id, "ID"):
+            print("")
+            return
+        isExists = self.database.fetch_passwords_by_id(id)
+        if not isExists:
+            self.console.print("No password found for the given ID: {id}\n", style="red")
+            return 
+        
+        while True:
+            udec = self.console.input("[yellow]> [/yellow]Do you want to update the username? (yes/no): ").strip()
+            if udec == "yes":
+                while True:
+                    new_username = self.console.input(f"[yellow]> [/yellow]Enter new username: ").strip()
+                    if self._validate_input(new_username, "Username"):
+                        self.storage.update_password(id, username=new_username)
+                        print("Username updated successfully.")
+                        break
+                break
+            elif udec == "no":
+                break
+            else:
+                self.console.print("Invalid input. Enter 'yes' or 'no' to update username.", style="red")
+
+        # while True:
