@@ -5,18 +5,18 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 
 class CryptoManager:
-    def __init__(self, storage):
-        self.storage = storage
+    def __init__(self, database):
+        self.database = database
         self.fernet = None
 
     # Master password hashing
     def hash_master_password(self, password: str) -> bytes:
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-        self.storage.set_master_hash(hashed)
+        self.database.set_master_hash(hashed)
         return hashed
     
     def verify_master_password(self, attempt: str) -> bool:
-        stored = self.storage.get_master_hash()
+        stored = self.database.get_master_hash()
         if not stored:
             return False
         try:
@@ -26,9 +26,9 @@ class CryptoManager:
         
     #  Key derivation and Fernet
     def dervive_key(self, password: str) -> bytes:
-        salt = self.storage.get_encryption_salt()
+        salt = self.database.get_encryption_salt()
         if not salt:
-            raise RuntimeError("Encryption salt not found in storage.")
+            raise RuntimeError("Encryption salt not found in database.")
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
@@ -49,11 +49,14 @@ class CryptoManager:
             raise RuntimeError("Fernet instance not initialized.")
         
         token = self.fernet.encrypt(plaintext.encode())
-        return base64.b64decode(token).decode('utf-8')
+        return base64.b64encode(token).decode('utf-8')
 
     def decrypt(self, token_b64: str) -> str:
         if not self.fernet:
             raise RuntimeError("Fernet instance not initialized.")
         
-        token = base64.b64decode(token_b64.encode('utf-8'))
-        return self.fernet.decrypt(token).decode('utf-8')
+        try:
+            token = base64.b64decode(token_b64) 
+            return self.fernet.decrypt(token).decode('utf-8')
+        except Exception as e:
+            raise RuntimeError(f"Decryption failed: {str(e)}")

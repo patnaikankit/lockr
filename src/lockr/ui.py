@@ -10,7 +10,7 @@ class UIManager:
     def startup_text(self, version: str):
         self.console.clear()
         header = Text()
-        header.append("vanta", style="bold white")
+        header.append("lockr", style="bold white")
         header.append("\n")
         header.append(f"v{version}", style="dim white")
         self.console.print()
@@ -69,4 +69,4 @@ class UIManager:
 
         self.console.print(art)
         self.console.print(f"Version: {version}", style="cyan")
-        self.console.print("Repo: [link=https://github.com/eelixir/vanta]github.com/eelixir/vanta[/link]\n", style="cyan")
+        self.console.print("Repo: [link=https://github.com/eelixir/lockr]github.com/eelixir/lockr[/link]\n", style="cyan")
