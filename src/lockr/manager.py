@@ -1,4 +1,5 @@
 import time
+import pyperclip
 from rich.console import Console
 from rich.table import Table
 
@@ -199,4 +200,151 @@ class Server:
             else:
                 self.console.print("Invalid input. Enter 'yes' or 'no' to update username.", style="red")
 
-        # while True:
+        while True:
+            pdec = self.console.input("[yellow]> [/yellow]Do you want to update the password? (yes/no): ").strip()
+            if pdec == "yes":
+                while True:
+                    choice = self.console.input("[yellow]> [/yellow]Choose password method - /create to type your own, /generate for a random one: ").strip()
+                    if choice in ("/create", "/c"):
+                        while True:
+                            new_pwd = self.console.input("[yellow]> [/yellow]Create password: ").strip()
+                            ok, reqs = check_complexity(new_pwd, min_length=12)
+                            if ok:
+                                break
+                            else:
+                                self.console.print(f"Password must contain: {', '.join(reqs)}", style="red")
+                        break
+                    elif choice in ("/generate", "/g"):
+                        while True:
+                            length = self.console.input("[yellow]> [/yellow]Enter password length (min 16): ").strip()
+                            if not length.isdigit():
+                                print("Password must be an integer.")
+                                continue
+                            if int(length) < 16:
+                                print("Password must be atleast 16 characters.")
+                                continue
+                            new_pwd = generate_password(int(length))
+                            print(f"This is the generated password: {new_pwd}")
+                            break
+                        break
+                    else:
+                        self.console.print("Invalid input. Enter '/create' or '/generate'", style="red")
+                enc = self.crypto.encrypt(new_pwd)
+                self.database.update_password(id, encrypted_password=enc)
+                print("Password updated successfully")
+                break
+            elif pdec == "no":
+                break
+            else:
+                self.console.print("Invalid input. Enter 'yes' or 'no' to update password.", style="red")
+
+        self.most_recent_id = id
+        print(f"Update for ID {id} complete.\n")
+
+    def handle_delete(self):
+        entries = self.database.fetch_passwords_meta()
+        if not entries:
+            print("No passwords stored yet.\n")
+            return
+        table = Table(title="\nStored password entries")
+        table.add_column("ID", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Website", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Username", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Creation Date", justify="center", style="cyan", no_wrap=True)
+
+        for entry in entries:
+            table.add_row(f"{entry[0]}", f"{entry[1]}", f"{entry[2]}", f"{entry[3]}")
+        self.console.print(table)
+        print("")
+        while True:
+            id = self.console.input("[yellow]> [/yellow]Enter the ID of the password you want to delete: ").strip()
+            if not self._validate_input(id, "ID"):
+                continue
+
+            confirm = self.console.input(f"[yellow]> [/yellow][red]Are you sure you want to delete ID: {id}? (Y/n): [/red]").strip()
+
+            if confirm.isupper() == "Y":
+                meta = [m for m in entries if str(m[0]) == str(id)]
+                website_name = meta[0][1] if meta else None
+                success = self.database.delete_password(id)
+                if success:
+                    print(f"Password for website '{website_name}' (ID: {id}) has been deleted.\n")
+                else:
+                    print("No password found for that ID.\n")
+                break
+            elif confirm.isupper() == "N":
+                break
+            else:
+                self.console.print("Invalid input. 'yes' or 'no' for password deletion.", style="red")
+
+    def handle_copy(self):
+        if not self.most_recent_id:
+            print("No recently viewed password to copy.\n")
+        enc = self.database.fetch_passwords_by_id(self.most_recent_id)
+        if not enc:
+            print("Failed to copy most recent password.\n")
+            return
+        try:
+            dec = self.crypto.decrypt(enc)
+            pyperclip.copy(dec)
+            self.console.print("Password copied to clipboard.", style="green")
+        except Exception:
+            self.console.print("Decryption failed. Cannot copy password.\n", style="red")
+
+    def handle_master_change(self):
+        # decrypt all with old fernet, collect plaintexts
+        all_enc = self.database.fetch_all_encrypted()
+        decrypted = []
+        for pw_id, enc in all_enc:
+            try:
+                dec = self.crypto.decrypt(enc)
+                decrypted.append((pw_id, dec))
+            except Exception:
+                self.console.print(f"Decryption failed for ID: {pw_id}. Skipping master password change.\n", style="red")
+        
+        self.create_master_password()
+
+        # re-encrypt all with new fernet
+        for pw_id, plain in decrypted:
+            enc = self.crypto.encrypt(plain)
+            self.database.update_password(pw_id, encrypted_password=enc)
+        self.console.print("Master password changed successfully!\n", style="green")
+
+        def run(self):
+            self.console.print("Welcome to Lockr - Your Secure Password Manager\n", style="bold blue")
+
+            if self._check_master_password_exist():
+                self.authenticate()
+            else:
+                self.console.print("No master password found. Please create one.\n", style="yellow")
+                self.create_master_password()
+
+            if self.is_authenticated:
+                self.console.clear()
+                self.ui.startup_text(self.version)
+                self.console.print("Access granted to password database!", style="green")
+
+            while True:
+                manager_process = self.console.input("[yellow]> [/yellow]").strip()
+                if manager_process in ("/help", "/h"):
+                    self.ui.show_help()
+                elif manager_process in ("/info", "/i"):
+                    self.ui.show_info(self.version)
+                elif manager_process in ("/view", "/v"):
+                    self.handle_view()
+                elif manager_process in ("/add", "/a"):
+                    self.handle_add()
+                elif manager_process in ("/update", "/u"):
+                    self.handle_update()
+                elif manager_process in ("/delete", "/d"):
+                    self.handle_delete()
+                elif manager_process in ("/copy", "/c"):
+                    self.handle_copy()
+                elif manager_process in ("/master", "/m"):
+                    self.handle_master_change()
+                elif manager_process in ("/quit", "/q"):
+                    print("Goodbye, friend.")
+                    break
+                else:
+                    # ignore / unknown
+                    pass
