@@ -63,13 +63,13 @@ class Server:
 
                     pwd = generate_password(int(length))
                     self.console.print(f"Generated master password: [bold]{pwd}[/bold]\n", style="green")
-                    self.console.print("Please store it securely as it cannot be recovered later.\n", style="red")
+                    self.console.print("The password will be visible only for 10 seconds; please securely store it as it cannot be recovered later.\n", style="red")
+
+                    time.sleep(10)
                     break
                 break
             else:
                 self.console.print("Invalid input. Enter '/create' or '/generate'", style="red")
-
-        time.sleep(10)
 
         # hash & store
         self.crypto.hash_master_password(pwd)

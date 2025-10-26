@@ -69,4 +69,4 @@ class UIManager:
 
         self.console.print(art)
         self.console.print(f"Version: {version}", style="cyan")
-        self.console.print("Repo: [link=https://github.com/eelixir/lockr]github.com/eelixir/lockr[/link]\n", style="cyan")
+        self.console.print("Repo: [link=https://github.com/patnaikankit/lockr]github.com/patnaikankit/lockr[/link]\n", style="cyan")
